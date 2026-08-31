@@ -295,6 +295,4 @@ cloudpilot/
 
 ## License
 
-No license file is currently included. All rights reserved by default until one is
-added — if you intend to share or reuse this project, add a `LICENSE` file (e.g. MIT)
-first.
+This project is licensed under the MIT License. See the `LICENSE` file for more details.
