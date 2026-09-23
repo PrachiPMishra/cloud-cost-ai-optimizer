@@ -17,12 +17,30 @@ settings = get_settings()
 
 app = FastAPI(title=settings.app_name)
 
+# Local dev origins always work without any env var; production origins come
+# from ALLOWED_ORIGINS (comma-separated exact matches — e.g. the Vercel
+# production URL). Vercel preview deployments get their own random
+# *.vercel.app subdomain per branch/PR, so those are matched via
+# allow_origin_regex instead of requiring ALLOWED_ORIGINS to be updated
+# every time one is created.
+_default_dev_origins = ["http://localhost:5173", "http://localhost:5174"]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[*_default_dev_origins, *settings.allowed_origins_list],
+    allow_origin_regex=r"https://.*\.vercel\.app",
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.get("/health", tags=["health"])
+def root_health() -> dict:
+    """Unauthenticated liveness check with no DB dependency — used as
+    Render's healthCheckPath. GET /api/health (below) also checks DB
+    connectivity and is what the frontend's Settings page calls."""
+    return {"status": "ok"}
+
 
 app.include_router(health_router, prefix="/api", tags=["health"])
 app.include_router(data_router, prefix="/api/data", tags=["data"])
