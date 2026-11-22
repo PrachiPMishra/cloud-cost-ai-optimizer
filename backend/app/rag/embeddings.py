@@ -8,17 +8,26 @@ vector search, not an LLM call, and never touches GEMINI_API_KEY.
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import numpy as np
-from sentence_transformers import SentenceTransformer
+
+if TYPE_CHECKING:
+    from sentence_transformers import SentenceTransformer
 
 MODEL_NAME = "all-MiniLM-L6-v2"
 
-_model: SentenceTransformer | None = None
+_model: "SentenceTransformer | None" = None
 
 
-def get_model() -> SentenceTransformer:
+def get_model() -> "SentenceTransformer":
     global _model
     if _model is None:
+        # Imported here, not at module top: it pulls in PyTorch (~300MB+),
+        # which would otherwise load at app startup and blow Render's
+        # 512MB free-tier limit before the first request.
+        from sentence_transformers import SentenceTransformer
+
         _model = SentenceTransformer(MODEL_NAME)
     return _model
 
