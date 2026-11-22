@@ -5,6 +5,11 @@ pricing engine prices it, an OR-Tools solver optimizes it, and an LLM agent laye
 critiques, and explains the result in plain language, without ever touching a number
 itself.
 
+**Live demo:** frontend — `<your-vercel-url>.vercel.app` · backend —
+`<your-render-url>.onrender.com` *(placeholders — fill in after deploying; see
+[`DEPLOY.md`](DEPLOY.md))*. The backend is on Render's free tier, so the first request
+after a period of inactivity can take 30–50s to wake up.
+
 ## Overview
 
 CloudPilot ingests cloud usage/billing data and turns it into a forecast, a priced
@@ -160,8 +165,12 @@ Key variables (see [`.env.example`](.env.example) for the full list):
 |---|---|
 | `GEMINI_API_KEY` | Google Gemini API key. Optional — every agent falls back to a deterministic template narrative without one; no computed number depends on it. |
 | `GEMINI_MODEL` | Defaults to `gemini-2.5-flash`. |
-| `DATABASE_URL` | Postgres connection string. Docker Compose sets this automatically for the containerized backend; edit it in `backend/.env` if running the backend on your host. |
+| `DATABASE_URL` | Postgres connection string. Docker Compose sets this automatically for the containerized backend; edit it in `backend/.env` if running the backend on your host. `postgres://` URLs (e.g. from Render) are normalized to `postgresql://` automatically. |
+| `ALLOWED_ORIGINS` | Comma-separated list of exact CORS origins. Empty by default — fine for local dev (localhost is always allowed); required for a deployed frontend. See [`DEPLOY.md`](DEPLOY.md). |
 | `USD_TO_INR_RATE` | Display-only currency conversion rate (default `83.0`). Never used in any calculation. |
+
+This covers local development. For a deployed instance (Render + Vercel, both with a
+free tier), see [`DEPLOY.md`](DEPLOY.md).
 
 ### 2. Start Postgres + backend
 
@@ -255,28 +264,33 @@ Details on what's tested and what isn't: [`docs/definition-of-done.md`](docs/def
 ## Project structure
 
 ```
-cloudpilot/
+.
 ├── frontend/                  React + TS + Vite + Tailwind + Recharts app
+│   ├── vercel.json             SPA rewrite (deep links serve index.html)
 │   └── src/
-│       ├── api/                API client + generated types
-│       ├── components/         Shared UI (layout, resource selector, scenario table)
-│       ├── context/             App-wide state (provider, resource, currency)
-│       ├── hooks/                Data-fetching + SSE-streaming hooks
+│       ├── api/                 API client + generated types (cold-start retry lives here)
+│       ├── components/          Shared UI (layout, resource selector, scenario table)
+│       ├── context/              App-wide state (provider, resource, currency)
+│       ├── hooks/                 Data-fetching + SSE-streaming hooks
 │       ├── lib/                    Pure helper functions (currency formatting, etc.)
-│       └── pages/                  One file per route
+│       └── pages/                   One file per route
 ├── backend/
+│   ├── Dockerfile               Reads $PORT at runtime (Render sets this automatically)
+│   ├── .python-version           3.12
+│   ├── requirements.txt           Runtime dependencies only
+│   ├── requirements-dev.txt        + pytest/httpx, for local test runs
 │   ├── app/
-│   │   ├── agents/              LangGraph agents (plan/reason/explain only)
-│   │   ├── tools/                 Agent-callable, typed & logged tool wrappers
-│   │   ├── forecasting/            ML forecasting models
-│   │   ├── optimization/            OR-Tools optimization models
-│   │   ├── pricing/                  Pricing engine
-│   │   ├── rag/                       FAISS + local-embedding retrieval
-│   │   ├── api/                         FastAPI routers
-│   │   ├── models/                       SQLAlchemy ORM models
-│   │   ├── services/                      Cross-cutting business logic
-│   │   ├── evaluation/                     Scaffolded, unused — see docs/definition-of-done.md
-│   │   └── config/                          Pydantic settings
+│   │   ├── agents/                LangGraph agents (plan/reason/explain only)
+│   │   ├── tools/                   Agent-callable, typed & logged tool wrappers
+│   │   ├── forecasting/              ML forecasting models
+│   │   ├── optimization/              OR-Tools optimization models
+│   │   ├── pricing/                    Pricing engine
+│   │   ├── rag/                         FAISS + local-embedding retrieval
+│   │   ├── api/                           FastAPI routers
+│   │   ├── models/                         SQLAlchemy ORM models
+│   │   ├── services/                        Cross-cutting business logic
+│   │   ├── evaluation/                       Scaffolded, unused — see docs/definition-of-done.md
+│   │   └── config/                            Pydantic settings (CORS, DB URL normalization)
 │   ├── alembic/                 Database migrations
 │   └── tests/                     Pytest suite (231 tests)
 ├── datasets/                   Sample/reference datasets
@@ -289,6 +303,8 @@ cloudpilot/
 │   ├── running-locally.md           Exhaustive setup walkthrough + pitfalls
 │   ├── definition-of-done.md         Rule-by-rule audit against project requirements
 │   └── screenshots/                   README screenshots
+├── render.yaml                 Render Blueprint (backend + Postgres)
+├── DEPLOY.md                    Render + Vercel deployment walkthrough
 ├── docker-compose.yml
 └── .env.example
 ```

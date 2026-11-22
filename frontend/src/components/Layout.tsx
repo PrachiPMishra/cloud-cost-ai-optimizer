@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { NavLink } from 'react-router-dom'
 import { useAppContext } from '../context/AppContext'
 import { useCurrency } from '../context/CurrencyContext'
+import { ColdStartBanner } from './ColdStartBanner'
 
 const NAV_ITEMS = [
   { to: '/', label: 'Dashboard', end: true },
@@ -69,7 +70,10 @@ export function Layout({ children }: { children: ReactNode }) {
           </div>
         </div>
       </aside>
-      <main className="flex-1 overflow-y-auto p-8">{children}</main>
+      <main className="flex flex-1 flex-col overflow-y-auto">
+        <ColdStartBanner />
+        <div className="flex-1 p-8">{children}</div>
+      </main>
     </div>
   )
 }
